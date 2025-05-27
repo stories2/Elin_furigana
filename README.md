@@ -4,4 +4,4 @@
 
 The game mod which is translating the kanji to katakana.
 
-[link](https://steamcommunity.com/sharedfiles/filedetails/?id=3488077923)
+[steam workshop link](https://steamcommunity.com/sharedfiles/filedetails/?id=3488077923)
