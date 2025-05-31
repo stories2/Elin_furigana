@@ -106,7 +106,7 @@ public class GameLangConvertDramaInterceptor
 {
     public static void Prefix(string text, Chara c = null)
     {
-        FuriganaMod.Log($"[GameLangConvertDramaInterceptor] [ConvertDrama] [Prefix] : {text} / {c.Name}");
+        // FuriganaMod.Log($"[GameLangConvertDramaInterceptor] [ConvertDrama] [Prefix] : {text} / {c.Name}");
     }
 
     public static void Postfix(ref string __result)
