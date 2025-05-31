@@ -9,9 +9,13 @@ using BepInEx;
 using Ganss.Text;
 using HalfFullWidth;
 using HarmonyLib;
+using IniParser;
+using IniParser.Model;
 using JetBrains.Annotations;
 using MyNihongo.KanaConverter;
 using NPOI.SS.UserModel;
+using UnityEngine;
+using UnityEngine.UI;
 
 namespace MyMod;
 
@@ -97,68 +101,6 @@ internal class Furigana
 //     }
 // }
 
-[HarmonyPatch(typeof(LangGame), "SetRow")]
-public class LangGameSetRowInterceptor
-{
-    public static void Prefix(LangGame.Row r)
-    {
-        FuriganaMod.Log($"[LangGameSetRowInterceptor] [SetRow] [Prefix] : {r.text_JP}");
-    }
-}
-
-
-[HarmonyPatch(typeof(LangGeneral), "SetRow")]
-public class LangGeneralSetRowInterceptor
-{
-    public static void Prefix(LangGeneral.Row r)
-    {
-        FuriganaMod.Log($"[LangGeneralSetRowInterceptor] [SetRow] [Prefix] : {r.text_JP}");
-    }
-}
-
-[HarmonyPatch(typeof(DramaManager), "AddEvent", new[] { typeof (DramaEvent)})]
-public class DramaEventAddEventInterceptor
-{
-    public static void Prefix(DramaEvent e)
-    {
-        FuriganaMod.Log($"[DramaEventAddEventInterceptor] [AddEvent] [Prefix] : {e.step}");
-    }
-
-    public static void Postfix(ref DramaEvent __result)
-    {
-        if (__result.sequence.firstTalk != null)
-        {
-            FuriganaMod.Log($"[DramaEventAddEventInterceptor] [AddEvent] [Postfix] :");
-        }
-        // else
-        // {
-        //     HelloElinMod.Log($"[DramaEventAddEventInterceptor] [AddEvent] [Postfix] : {__result}");
-        // }
-    }
-}
-
-[HarmonyPatch(typeof(DramaSequence), "Play", new[] {typeof (string)})]
-public class DramaSequencePlayInterceptor
-{
-    public static void Prefix(string id)
-    {
-        FuriganaMod.Log($"[DramaSequencePlayInterceptor] [Play] [Prefix] : {id}");
-    }
-    public static void Postfix()
-    {}
-}
-
-[HarmonyPatch(typeof(DramaSequence), "Play", new[] {typeof (int)})]
-public class DramaSequencePlay2Interceptor
-{
-    public static void Prefix(int eventID = 0)
-    {
-        FuriganaMod.Log($"[DramaSequencePlayInterceptor] [Play] [Prefix] : {eventID}");
-    }
-    public static void Postfix()
-    {}
-}
-
 [HarmonyPatch(typeof(GameLang), "ConvertDrama")]
 public class GameLangConvertDramaInterceptor
 {
@@ -208,87 +150,6 @@ public class GameLangConvertDramaInterceptor
 // }
 
 
-[HarmonyPatch(typeof(DramaManager), "Show")]
-public class DramaManagerShowInterceptor
-{
-    public static void Prefix()
-    {
-        FuriganaMod.Log($"[DramaManagerShowInterceptor] [Show] [Prefix]");
-    }
-
-    public static void Postfix()
-    {
-        // string converted = HelloElinMod.Convert(__result);
-        // HelloElinMod.Log($"[LangGetInterceptor] [Get] [Postfix] : {__result} / {converted}");
-        // __result = converted;
-    }
-}
-
-[HarmonyPatch(typeof(ExcelData), "GetText")]
-public class ExcelDataGetTextInterceptor
-{
-    public static void Prefix(string id, string topic = "text")
-    {
-        FuriganaMod.Log($"[ExcelDataGetTextInterceptor] [GetText] [Prefix] : {id} / {topic}");
-    }
-
-    public static void Postfix(ref string __result)
-    {
-        // string converted = HelloElinMod.Convert(__result);
-        // HelloElinMod.Log($"[LangGetInterceptor] [Get] [Postfix] : {__result} / {converted}");
-        // __result = converted;
-    }
-}
-
-
-[HarmonyPatch(typeof(ExcelDataList), "GetRow")]
-public class ExcelDataListGetRowInterceptor
-{
-    public static void Prefix(string id)
-    {
-        FuriganaMod.Log($"[ExcelDataListGetRowInterceptor] [GetRow] [Prefix] : {id}");
-    }
-
-    public static void Postfix(ref Dictionary<string, string> __result)
-    {
-        // string converted = HelloElinMod.Convert(__result);
-        // HelloElinMod.Log($"[LangGetInterceptor] [Get] [Postfix] : {__result} / {converted}");
-        // __result = converted;
-    }
-}
-
-
-[HarmonyPatch(typeof(ExcelParser), "GetStr")]
-public class ExcelParserGetStrInterceptor
-{
-    public static void Prefix(int id, bool useDefault = false)
-    {
-        FuriganaMod.Log($"[ExcelParserGetStrInterceptor] [GetStr] [Prefix] : {id} / {useDefault}");
-    }
-
-    public static void Postfix(ref string __result)
-    {
-        // string converted = HelloElinMod.Convert(__result);
-        // HelloElinMod.Log($"[LangGetInterceptor] [Get] [Postfix] : {__result} / {converted}");
-        // __result = converted;
-    }
-}
-
-[HarmonyPatch(typeof(ExcelParser), "GetStringArray")]
-public class ExcelParserGetStringArrayInterceptor
-{
-    public static void Prefix(int id)
-    {
-        FuriganaMod.Log($"[ExcelParserGetStringArrayInterceptor] [GetStringArray] [Prefix] : {id}");
-    }
-
-    public static void Postfix(ref string[] __result)
-    {
-        // string converted = HelloElinMod.Convert(__result);
-        // HelloElinMod.Log($"[LangGetInterceptor] [Get] [Postfix] : {__result} / {converted}");
-        // __result = converted;
-    }
-}
 
 [HarmonyPatch(typeof(Lang), "Get")]
 public class LangGetInterceptor
@@ -361,6 +222,91 @@ public class SceneInitInterceptor
         }
     }
 
+    [HarmonyPatch(typeof(global::ContentConfigOther), "OnInstantiate")]
+    public class ContentConfigOtherOnInstantiateInterceptor
+    {
+
+        public static GameObject RecursiveGameObjectFinder(GameObject startObject, int depth, string finding)
+        {
+            string[] dump = new string[depth];
+            FuriganaMod.Log($"{string.Join(" ", dump)}└ {startObject.name} / {startObject.name.Equals(finding)} / {finding}");
+            
+            if (startObject.name.Equals(finding))
+                return startObject;
+
+            if (startObject.transform.childCount <= 0)
+                return null;
+
+            for (int i = 0; i < startObject.transform.childCount; i++)
+            {
+                GameObject re = RecursiveGameObjectFinder(startObject.transform.GetChild(i).gameObject, depth + 1, finding);
+                if (re != null)
+                    return re;
+            }
+
+            return null;
+        }
+        public static void Prefix(ContentConfigOther __instance)
+        {
+            FuriganaMod.Log("[ContentConfigOtherOnInstantiateInterceptor] [OnInstantiate] [Prefix]");
+            
+            FuriganaMod.Log($"[ContentConfigOtherOnInstantiateInterceptor] [OnInstantiate] [Prefix] pos.{__instance.toggleDisableMods.gameObject.transform.localPosition} / {__instance.toggleDisableMods.transform.position}");
+            FuriganaMod.Log($"[ContentConfigOtherOnInstantiateInterceptor] [OnInstantiate] [Prefix] name.{__instance.toggleDisableMods.gameObject.name}");
+
+            GameObject groupMod = RecursiveGameObjectFinder(__instance.gameObject, 0, "Group mod");
+                // /ContentConfigOther(Clone)/Inner Scroll/Scrollview default/Viewport/Content/Horizontal/Group mod
+
+                if (groupMod == null)
+                {
+                    FuriganaMod.Log($"[ContentConfigOtherOnInstantiateInterceptor] [OnInstantiate] [Prefix] group mod is null");
+                    return;
+                }
+            
+            GameObject sampleUiText = RecursiveGameObjectFinder(__instance.gameObject, 0, "UIText");
+            GameObject textDescObj = GameObject.Instantiate(sampleUiText);
+            textDescObj.transform.parent = groupMod.transform;
+            Text descText = textDescObj.GetComponent<Text>();
+            descText.text = "[ふりがな/furigana mod]";
+            
+            GameObject sampleUiText2 = RecursiveGameObjectFinder(__instance.gameObject, 0, "UIText");
+            GameObject textDescObj2 = GameObject.Instantiate(sampleUiText2);
+            textDescObj2.transform.parent = groupMod.transform;
+            Text descText2 = textDescObj2.GetComponent<Text>();
+            descText2.text = "ゲーム再起動必要/Restart required";
+            
+            UIDropdown dropdown = GameObject.Instantiate(__instance.ddSnap);
+            dropdown.transform.parent = groupMod.transform;
+            // "漢字(kanji) > 英語 発音記号(romaji)", 
+            // "漢字(kanji) > ひらがな(hiragana)",
+            dropdown.SetList((int)FuriganaMod.FURIGANA_CURRENT_TRANSLATING_TYPE, new List<string>(){"漢字(kanji) > ｶﾀｶﾅ(katakana)", "漢字(kanji) > 英語 発音記号(romaji)", "無効化(Disable)"}, ((selected, i) => selected),
+                delegate(int a, string selected)
+                {
+                    FuriganaMod.Log($"[ContentConfigOtherOnInstantiateInterceptor] [OnInstantiate] [Prefix] dropdown {selected} / {CorePath.RootSave}");
+
+                    FileIniDataParser parser = new FileIniDataParser();
+                    IniData data = parser.ReadFile(FuriganaMod.FURIGANA_CONFIG_PATH);
+                    data["translating"]["type"] = selected;
+                    parser.WriteFile(FuriganaMod.FURIGANA_CONFIG_PATH, data);
+                });
+            // Transform label = dropdown.transform.Find("Label");
+            // if (label != null)
+            //     FuriganaMod.Log($"[ContentConfigOtherOnInstantiateInterceptor] [OnInstantiate] [Prefix] label exist");
+            // Text textLabel = label.gameObject.GetComponent<Text>();
+            // if (textLabel != null)
+            //     textLabel.text = "ゲーム再起動必要/Restart required";
+            
+            // Text text = __instance.toggleDisableMods.GetComponentInChildren<Text>();
+            // if (text == null)
+            // {
+            //     FuriganaMod.Log("[ContentConfigOtherOnInstantiateInterceptor] [OnInstantiate] [Prefix] text == null");
+            // }
+            // else
+            // {
+            //     FuriganaMod.Log($"[ContentConfigOtherOnInstantiateInterceptor] [OnInstantiate] [Prefix] text != null / {text.text}");
+            //     text.text = "FUCK";
+            // }
+        }
+    }
 
     [BepInPlugin(ModInfo.Guid, ModInfo.Name, ModInfo.Version)]
     internal class FuriganaMod : BaseUnityPlugin
@@ -371,11 +317,40 @@ public class SceneInitInterceptor
         {
             Instance = this;
 
-            furiganaDictionary = LoadDictionary();
+            if (!File.Exists(FURIGANA_CONFIG_PATH))
+            {
+                FURIGANA_CURRENT_TRANSLATING_TYPE = FURIGANA_TRANSLATING_TYPE.KATAKANA;
+                File.Create(FURIGANA_CONFIG_PATH).Close();
+            }
+            else
+            {
+                FileIniDataParser parser = new FileIniDataParser();
+                IniData data = parser.ReadFile(FuriganaMod.FURIGANA_CONFIG_PATH);
+                switch (data["translating"]["type"])
+                {
+                    case "漢字(kanji) > ｶﾀｶﾅ(katakana)":
+                        FURIGANA_CURRENT_TRANSLATING_TYPE = FURIGANA_TRANSLATING_TYPE.KATAKANA;
+                        break;
+                    case "漢字(kanji) > ひらがな(hiragana)":
+                        FURIGANA_CURRENT_TRANSLATING_TYPE = FURIGANA_TRANSLATING_TYPE.HIRAGANA;
+                        break;
+                    case "漢字(kanji) > 英語 発音記号(romaji)":
+                        FURIGANA_CURRENT_TRANSLATING_TYPE = FURIGANA_TRANSLATING_TYPE.ROMAJI;
+                        break;
+                    case "無効化(Disable)":
+                        FURIGANA_CURRENT_TRANSLATING_TYPE = FURIGANA_TRANSLATING_TYPE.DISABLE;
+                        break;
+                    default:
+                        FURIGANA_CURRENT_TRANSLATING_TYPE = FURIGANA_TRANSLATING_TYPE.KATAKANA;
+                        break;
+                }
+            }
+
+        furiganaDictionary = LoadDictionary();
             Log($"[Furigana] [Furigana] Json loaded {furiganaDictionary.Count}");
             furiganaHashmap = BuildHashMap(furiganaDictionary);
             InitSearchEngine();
-            Harmony.DEBUG = true;
+            Harmony.DEBUG = DEBUG;
             var harmony = new Harmony(ModInfo.Guid);
             harmony.PatchAll();
             string patchResult = string.Join(", ", harmony.GetPatchedMethods().Select(e => $"{e.Name} | {e.Module} | {e.DeclaringType}").ToList());
@@ -410,6 +385,17 @@ public class SceneInitInterceptor
         private const string SPLITTER_FRONT = "「";
         private const string SPLITTER_BACK = "」";
         private const string PREFIX = "";
+        public static string FURIGANA_CONFIG_PATH = $"{CorePath.RootSave}/furigana.ini";
+
+        public enum FURIGANA_TRANSLATING_TYPE
+        {
+            KATAKANA = 0,
+            HIRAGANA = 3,
+            ROMAJI = 1,
+            DISABLE = 2
+        }
+        public static FURIGANA_TRANSLATING_TYPE FURIGANA_CURRENT_TRANSLATING_TYPE = FURIGANA_TRANSLATING_TYPE.KATAKANA;
+        
         public static List<FuriganaDictionaryEntry> furiganaDictionary;
         public static Dictionary<string, FuriganaDictionaryEntry> furiganaHashmap;
         public static Trie trie;
@@ -466,11 +452,15 @@ public class SceneInitInterceptor
             || Regex.Matches(input, @"\{[a-zA-Z]+[,|]+").Count > 0
             // || input.Contains(PREFIX)
             || ContainsHankakuKatakana(input)
+            || Regex.Matches(input, @"「[a-zA-Z]+」").Count > 0
             || Regex.Matches(input, @"^#[0-9]*").Count > 0)
         {
             // Log($"[Furigana] [Convert] skipped: {input}");
             return input;
         }
+
+        if (FURIGANA_CURRENT_TRANSLATING_TYPE == FURIGANA_TRANSLATING_TYPE.DISABLE)
+            return input;
 
         List<WordMatch> ahoCorasickResultList = ahoCorasick.Search(input).ToList();
         // Log($"[Furigana] [Convert] : {input}");
@@ -489,7 +479,12 @@ public class SceneInitInterceptor
                 {
                     convertedWord += $"{furigana.rt ?? furigana.ruby}";
                 }
-                convertedInput += $"{SPLITTER_FRONT}{convertedWord.KanaToKatakana(UnrecognisedCharacterPolicy.Append).ToHalfwidthString()}{SPLITTER_BACK}";
+                if (FURIGANA_CURRENT_TRANSLATING_TYPE == FURIGANA_TRANSLATING_TYPE.KATAKANA)
+                    convertedInput += $"{SPLITTER_FRONT}{convertedWord.KanaToKatakana(UnrecognisedCharacterPolicy.Append).ToHalfwidthString()}{SPLITTER_BACK}";
+                else if (FURIGANA_CURRENT_TRANSLATING_TYPE == FURIGANA_TRANSLATING_TYPE.ROMAJI)
+                    convertedInput += $"{SPLITTER_FRONT}{convertedWord.KanaToKatakana(UnrecognisedCharacterPolicy.Append).ToRomaji().ToHalfwidthString()}{SPLITTER_BACK}";
+                else if (FURIGANA_CURRENT_TRANSLATING_TYPE == FURIGANA_TRANSLATING_TYPE.HIRAGANA)
+                    convertedInput += $"{SPLITTER_FRONT}{convertedWord.KanaToHiragana(UnrecognisedCharacterPolicy.Append).ToHalfwidthString()}{SPLITTER_BACK}";
                 strPoint += bestMatch.Value.Word.Length;
             }
             else
