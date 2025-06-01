@@ -1,6 +1,6 @@
 # Furigana(ふりがな) mod for Elin
 
-<img width="305" alt="Image" src="https://github.com/user-attachments/assets/8a96dab7-e2f6-4fc8-baed-f4ed088715b3" />
+<img width="1011" alt="스크린샷 2025-06-01 10 41 10" src="https://github.com/user-attachments/assets/47f0f6e2-7b96-4788-bb38-af6b69bbac90" />
 
 The game mod which is translating the kanji to katakana.
 
